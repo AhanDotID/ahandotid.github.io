@@ -84,14 +84,14 @@ Account B → Victim (test account)</code></pre>
         <p>
           Login as Account B, open support chat and note the thread ID from the URL.
         </p>
-        <img src="../assets/screenshot_3_victim_thread_url.png"
+        <img src="../assets/writeups/airbnb/screenshot_3_victim_thread_url.png"
           alt="Victim Thread URL"
           style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 1.5rem;" />
 
         <p><strong>Step 3 — Encode the thread ID to Base64:</strong></p>
         <pre><code>$ echo -n "MessageThread:[REDACTED]" | base64
 [REDACTED_BASE64]</code></pre>
-        <img src="../assets/screenshot_4_base64_decode_terminal.png"
+        <img src="../assets/writeups/airbnb/screenshot_4_base64_decode_terminal.png"
           alt="Base64 Encoding in Terminal"
           style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 1.5rem;" />
 
@@ -101,17 +101,17 @@ Account B → Victim (test account)</code></pre>
           replace the <code>globalThreadId</code> value with the encoded victim thread ID,
           and send via Repeater.
         </p>
-        <img src="../assets/screenshot_1_repeater_request.png"
+        <img src="../assets/writeups/airbnb/screenshot_1_repeater_request.png"
           alt="Burp Suite Repeater Request"
           style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 1.5rem;" />
 
         <p><strong>Step 5 — Server returns HTTP 200 instead of 403:</strong></p>
-        <img src="../assets/screenshot_2_response_200_metadata.png"
+        <img src="../assets/writeups/airbnb/screenshot_2_response_200_metadata.png"
           alt="HTTP 200 Response"
           style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 1.5rem;" />
 
         <p><strong>Step 6 — Metadata of Account B leaked in response body:</strong></p>
-        <img src="../assets/screenshot_5_response_body_metadata_leaked.png"
+        <img src="../assets/writeups/airbnb/screenshot_5_response_body_metadata_leaked.png"
           alt="Leaked Metadata in Response Body"
           style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 1.5rem;" />
 
