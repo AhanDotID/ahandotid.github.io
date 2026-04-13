@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ahan Pahlevi — Portfolio</title>
+  <meta name="description" content="CTF Player | Penetration Tester | Security Researcher" />
+  <meta property="og:title" content="Ahan Pahlevi — Cybersecurity Portfolio" />
+  <meta property="og:description" content="CTF Player | Penetration Tester | Security Researcher" />
+  <meta name="theme-color" content="#080b0f" />
+
+  <!-- Favicon: ganti dengan favicon kamu -->
+  <link rel="icon" href="assets/favicon.ico" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Custom cursor -->
+  <div class="cursor"></div>
+  <div class="cursor-dot"></div>
+
+  <!-- ── NAVBAR ── -->
+  <nav>
+    <div class="nav-inner">
+      <div class="nav-logo">
+        <span>~/</span>ahanpahlevi<span class="blink">_</span>
+      </div>
+      <button class="nav-menu-btn" aria-label="menu">☰</button>
+      <ul class="nav-links">
+        <li><a href="index.html" class="active">About</a></li>
+        <li><a href="writeups.html">Writeups</a></li>
+        <li><a href="projects.html">Projects</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ── HERO ── -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-grid">
+        <div>
+          <div class="hero-prompt fade-up delay-1">aboutme.txt</div>
+          <h1 class="hero-name fade-up delay-2">
+            <span class="glitch" data-text="Ahan Pahlevi">Ahan Pahlevi</span>
+          </h1>
+          <div class="hero-title fade-up delay-3">
+            <span class="typed-text"></span><span class="typed-cursor">|</span>
+          </div>
+          <p class="hero-bio fade-up delay-4">
+            SMK graduate with 3+ years of experience in data entry, validation,
+            and office administration — including two national survey projects
+            with Statistics Indonesia (BPS). Holds dual B1 German certifications.
+            Actively pursuing cybersecurity, CTF competitions, and IT certifications.
+            Open to national & international opportunities in data, admin, and infosec.
+          </p>
+          <div class="hero-tags fade-up delay-4">
+            <span class="tag">Web Exploitation</span>
+            <span class="tag">Binary Exploitation</span>
+            <span class="tag">Reverse Engineering</span>
+            <span class="tag">Cryptography</span>
+            <span class="tag">OSINT</span>
+            <span class="tag">Network Security</span>
+            <span class="tag">Data Entry</span>
+            <span class="tag">Data Validation</span>
+            <span class="tag">Office Administration</span>
+            <span class="tag">German B1</span>
+            <span class="tag">Building Design</span>
+            <span class="tag">SketchUp / AutoCAD</span>
+          </div>
+          <div class="hero-links fade-up delay-5">
+            <a href="writeups.html" class="btn btn-primary">&#128196; Lihat Writeups</a>
+            <a href="contact.html" class="btn btn-outline">&#128231; Contact</a>
+          </div>
+        </div>
+
+        <div class="hero-avatar fade-up delay-3">
+          <div class="avatar-frame">
+            <!-- Ganti src dengan foto kamu -->
+            <img src="assets/avatar.jpg" alt="Avatar"
+              onerror="this.style.background='#111820';this.style.display='flex'" />
+            <div class="avatar-corner tl"></div>
+            <div class="avatar-corner tr"></div>
+            <div class="avatar-corner bl"></div>
+            <div class="avatar-corner br"></div>
+          </div>
+          <div class="avatar-status">
+            <span class="status-dot"></span> Available for collab
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── STATS ── -->
+  <section style="padding: 2rem 0 4rem;">
+    <div class="container">
+      <div class="stats-grid reveal">
+        <div class="stat-item">
+          <div class="stat-num" data-count="12" data-suffix="+">0+</div>
+          <div class="stat-label">CTF Solved</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" data-count="0" data-suffix="+">0+</div>
+          <div class="stat-label">Writeups</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" data-count="0" data-suffix="+">0+</div>
+          <div class="stat-label">Projects</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" data-count="5" data-suffix="+">0+</div>
+          <div class="stat-label">Certs</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TERMINAL ── -->
+  <section style="padding: 0 0 4rem;">
+    <div class="container">
+      <div class="terminal reveal">
+        <div class="terminal-bar">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+          <span class="terminal-title">bash — whoami</span>
+        </div>
+        <div class="terminal-body">
+          <div><span class="prompt">ahanpahlevi@kali</span>:<span class="cmd">~$</span> whoami</div>
+          <div class="out">Ahan Pahlevi</div>
+          <br>
+          <div><span class="prompt">ahanpahlevi@kali</span>:<span class="cmd">~$</span> cat aboutme.txt</div>
+          <div class="out">> Nama          : <span style="color:var(--cyan)">Ahan Pahlevi</span></div>
+          <div class="out">> Lokasi        : <span style="color:var(--cyan)">Indonesia 🇮🇩</span></div>
+          <div class="out">> Background    : <span style="color:var(--cyan)">Data Operations, Office Admin, BPS National Survey</span></div>
+          <div class="out">> Language      : <span style="color:var(--cyan)">Indonesian (Native) · German B1 · English</span></div>
+          <div class="out">> Currently     : <span style="color:var(--cyan)">Pursuing Cybersecurity & IT Certifications</span></div>
+          <div class="out">> Platform      : <span style="color:var(--cyan)">HackTheBox, TryHackMe, CTFtime, Hacker1, Bugcrowd</span></div>
+          <div class="out">> Status        : <span class="ok">&#x2714; Open to collab & projects</span></div>
+          <br>
+          <div><span class="prompt">ahanpahlevi@kali</span>:<span class="cmd">~$</span> <span class="blink" style="color:var(--green)">_</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SKILLS ── -->
+  <section>
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-num">01.</span>
+        <h2 class="section-title">Skills & Tools</h2>
+        <div class="section-line"></div>
+      </div>
+
+      <div class="skills-grid">
+        <div class="skill-card reveal">
+          <div class="skill-card-header">
+            <span class="skill-icon">🌐</span>
+            <span class="skill-name">Web Security</span>
+          </div>
+          <div class="skill-items">
+            <span class="skill-badge">SQLi</span>
+            <span class="skill-badge">XSS</span>
+            <span class="skill-badge">SSRF</span>
+            <span class="skill-badge">XXE</span>
+            <span class="skill-badge">LFI/RFI</span>
+            <span class="skill-badge">IDOR</span>
+            <span class="skill-badge">OAuth</span>
+            <span class="skill-badge">JWT</span>
+          </div>
+        </div>
+
+        <div class="skill-card reveal">
+          <div class="skill-card-header">
+            <span class="skill-icon">💥</span>
+            <span class="skill-name">Binary / Pwn</span>
+          </div>
+          <div class="skill-items">
+            <span class="skill-badge">Buffer Overflow</span>
+            <span class="skill-badge">ROP</span>
+            <span class="skill-badge">Heap Exploit</span>
+            <span class="skill-badge">GDB/pwndbg</span>
+            <span class="skill-badge">pwntools</span>
+          </div>
+        </div>
+
+        <div class="skill-card reveal">
+          <div class="skill-card-header">
+            <span class="skill-icon">🔓</span>
+            <span class="skill-name">Reverse Engineering</span>
+          </div>
+          <div class="skill-items">
+            <span class="skill-badge">Ghidra</span>
+            <span class="skill-badge">IDA Pro</span>
+            <span class="skill-badge">x64dbg</span>
+            <span class="skill-badge">radare2</span>
+            <span class="skill-badge">dnSpy</span>
+          </div>
+        </div>
+
+        <div class="skill-card reveal">
+          <div class="skill-card-header">
+            <span class="skill-icon">🔑</span>
+            <span class="skill-name">Cryptography</span>
+          </div>
+          <div class="skill-items">
+            <span class="skill-badge">RSA</span>
+            <span class="skill-badge">AES/CBC</span>
+            <span class="skill-badge">Hash Crack</span>
+            <span class="skill-badge">Padding Oracle</span>
+            <span class="skill-badge">SageMath</span>
+          </div>
+        </div>
+
+        <div class="skill-card reveal">
+          <div class="skill-card-header">
+            <span class="skill-icon">🛠</span>
+            <span class="skill-name">Tools & OS</span>
+          </div>
+          <div class="skill-items">
+            <span class="skill-badge">Kali Linux</span>
+            <span class="skill-badge">Burp Suite</span>
+            <span class="skill-badge">Nmap</span>
+            <span class="skill-badge">Metasploit</span>
+            <span class="skill-badge">Wireshark</span>
+            <span class="skill-badge">Gobuster</span>
+          </div>
+        </div>
+
+        <div class="skill-card reveal">
+          <div class="skill-card-header">
+            <span class="skill-icon">💻</span>
+            <span class="skill-name">Programming</span>
+          </div>
+          <div class="skill-items">
+            <span class="skill-badge">Python</span>
+            <span class="skill-badge">Bash</span>
+            <span class="skill-badge">C/C++</span>
+            <span class="skill-badge">JavaScript</span>
+            <span class="skill-badge">Go</span>
+          </div>
+        </div>
+
+          <div class="skill-card reveal">
+        <div class="skill-card-header">
+          <span class="skill-icon">🗂️</span>
+          <span class="skill-name">Data & Administration</span>
+        </div>
+        <div class="skill-items">
+          <span class="skill-badge">Data Entry</span>
+          <span class="skill-badge">Data Validation</span>
+          <span class="skill-badge">Office Admin</span>
+          <span class="skill-badge">Microsoft Office</span>
+          <span class="skill-badge">Google Workspace</span>
+          <span class="skill-badge">BPS Survey Ops</span>
+        </div>
+      </div>
+
+      <div class="skill-card reveal">
+        <div class="skill-card-header">
+          <span class="skill-icon">🌐</span>
+          <span class="skill-name">Languages</span>
+        </div>
+        <div class="skill-items">
+          <span class="skill-badge">Indonesian — Native</span>
+          <span class="skill-badge">English — Active</span>
+          <span class="skill-badge">German — B1 Certified</span>
+        </div>
+      </div>
+
+      <div class="skill-card reveal">
+        <div class="skill-card-header">
+          <span class="skill-icon">📐</span>
+          <span class="skill-name">Technical Background</span>
+        </div>
+        <div class="skill-items">
+          <span class="skill-badge">Building Design</span>
+          <span class="skill-badge">SketchUp / AutoCAD</span>
+          <span class="skill-badge">Technical Drawing</span>
+          <span class="skill-badge">Project Documentation</span>
+        </div>
+      </div>
+  </section>
+
+  <!-- ── CERTIFICATIONS ── -->
+  <section>
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-num">02.</span>
+        <h2 class="section-title">Certifications</h2>
+        <div class="section-line"></div>
+      </div>
+
+      <ul class="cert-list">
+        <li class="cert-item reveal">
+          <span class="cert-label">eJPT</span>
+          eLearnSecurity Junior Penetration Tester — INE Security
+        </li>
+        <li class="cert-item reveal">
+          <span class="cert-label">CEH</span>
+          Certified Ethical Hacker — EC-Council
+        </li>
+        <li class="cert-item reveal">
+          <span class="cert-label">CompTIA</span>
+          CompTIA Security+ — CompTIA
+        </li>
+        <li class="cert-item reveal">
+          <span class="cert-label">German B1</span>
+          Österreichisches Sprachdiplom Deutsch B1 — Spitze Studium ÖSD (Österreich)
+        </li>
+        <li class="cert-item reveal">
+          <span class="cert-label">German B1</span>
+           German Language Certification B1 — Stufen Edu University Service
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ── RECENT WRITEUPS ── -->
+  <section>
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-num">03.</span>
+        <h2 class="section-title">Recent Writeups</h2>
+        <div class="section-line"></div>
+        <a href="writeups.html" style="font-size:0.78rem;color:var(--cyan);white-space:nowrap;">Lihat semua →</a>
+      </div>
+
+      <div class="card-grid">
+        <div class="card-grid">
+        <div style="grid-column:1/-1;text-align:center;padding:3rem;border:1px dashed var(--border);border-radius:8px;color:var(--text-dim);font-size:0.85rem;">
+          <div style="font-size:2rem;margin-bottom:1rem;">🚧</div>
+          Writeups coming soon — currently grinding CTFs etc!
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-text">
+        Built with <span>♥</span> by <span>ahanpahlevi</span> — Hosted on GitHub Pages
+      </div>
+      <div class="footer-text">
+        <span>ahanpahlevi</span>@cianjursec ~ <span>2025</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
