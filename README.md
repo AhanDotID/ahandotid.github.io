@@ -24,7 +24,7 @@
 $ whoami
 Ahan Pahlevi
 
-$ cat aboutme.txt
+$ cat about.txt
 > Role       : Cybersecurity Enthusiast | CTF Player | Penetration Tester
 > Background : Data Operations | Office Administration | BPS National Survey
 > Language   : Indonesian (Native) · German B1 · English
