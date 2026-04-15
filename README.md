@@ -197,7 +197,7 @@ git push
 <div align="center">
 
 ```
-[★] ahandotid.github.io — built with ♥ & caffeine | CianjurSec
+[★] ahandotid.github.io — built with ♥ & anime | CianjurSec
 ```
 
 [![Visit](https://img.shields.io/badge/🌐_Visit_Website-ahandotid.github.io-39ff14?style=for-the-badge&labelColor=0d1117)](https://ahandotid.github.io)
