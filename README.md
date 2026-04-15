@@ -57,6 +57,11 @@ ahandotid.github.io/
     ├── avatar.jpg             # Foto profil
     ├── saweria-qr.png         # QR donasi Saweria
     └── favicon.ico            # Icon tab browser
+    └── 📂 writeups/           # Bug bounty documentation assets
+        ├── 📂 web1/
+        │   └── screenshot_*.png
+        └── 📂 web2/
+            └── ss*.jpg
 ```
 
 ---
