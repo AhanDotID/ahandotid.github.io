@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GraphQL Thread Metadata Disclosure — Airbnb | Ahan Pahlevi</title>
+  <title>GraphQL Thread Metadata Disclosure - Airbnb | Ahan Pahlevi</title>
   <link rel="icon" href="../assets/favicon.ico" />
   <link rel="stylesheet" href="../css/style.css" />
 </head>
@@ -37,11 +37,11 @@
           <span class="card-category cat-osint">Bug Bounty</span>
           <span class="card-category" style="background:rgba(255,211,42,0.1);color:var(--yellow);border:1px solid rgba(255,211,42,0.3);">Informative</span>
         </div>
-        <h1 class="article-title">GraphQL Thread Metadata Disclosure — Airbnb</h1>
+        <h1 class="article-title">GraphQL Thread Metadata Disclosure - Airbnb</h1>
         <div class="article-meta">
           <span>📅 2026</span>
           <span>⏱ 5 min read</span>
-          <span>🎯 HackerOne — Airbnb</span>
+          <span>🎯 HackerOne - Airbnb</span>
           <span>👤 Ahan Pahlevi</span>
         </div>
       </div>
@@ -50,67 +50,64 @@
 
         <h2>Overview</h2>
         <p>
-          While exploring Airbnb's support message system, I discovered that an authenticated user
-          can access partial metadata of another user's support thread by manipulating the
+          While exploring Airbnb's support message system, I found that an authenticated user
+          can access partial metadata of another user's support thread just by manipulating the
           <code>globalThreadId</code> parameter in the <code>ViaductGetThreadAndDataQuery</code>
-          GraphQL endpoint. The server returns <code>HTTP 200</code> with thread metadata
-          belonging to other users, instead of a proper <code>HTTP 403</code> Forbidden response.
+          GraphQL endpoint. Instead of returning a proper <code>HTTP 403</code>, the server
+          comes back with <code>HTTP 200</code> and thread metadata that doesn't belong to you.
         </p>
 
         <blockquote>
           "Being able to know if a user has an active conversation does not appear to pose a
-          security risk." — Airbnb Security Team (Closed as Informative)
+          security risk." - Airbnb Security Team (Closed as Informative)
         </blockquote>
 
-        <h2>Vulnerability Summary</h2>
+        <h2>What Gets Leaked</h2>
         <p>
-          Although message content is properly protected, the endpoint leaks the following
-          metadata when supplied with an unauthorized <code>globalThreadId</code>:
+          The message content itself is protected, but the endpoint still leaks a bunch of
+          metadata when you supply an unauthorized <code>globalThreadId</code>. Things like
+          thread ID and existence confirmation, inbox visibility status via <code>hiddenInInbox</code>
+          which actually reveals whether an account is under moderation, activity timestamps,
+          and profile images of the support participants.
         </p>
-        <ul style="padding-left:1.5rem;margin-bottom:1.2rem;color:var(--text-dim);">
-          <li>Thread ID & existence confirmation</li>
-          <li>Inbox visibility status (<code>hiddenInInbox</code>) — reveals account moderation status</li>
-          <li>Activity timestamps (<code>mostRecentInboxActivityAtMsFromROS</code>)</li>
-          <li>Profile images of support participants</li>
-        </ul>
 
         <h2>Steps to Reproduce</h2>
 
-        <p><strong>Step 1 — Setup two Airbnb accounts:</strong></p>
-        <pre><code>Account A → Attacker
-Account B → Victim (test account)</code></pre>
+        <p><strong>Step 1 - Setup two Airbnb accounts:</strong></p>
+        <pre><code>Account A - Attacker
+Account B - Victim (test account)</code></pre>
 
-        <p><strong>Step 2 — Get victim's thread ID from URL:</strong></p>
+        <p><strong>Step 2 - Get the victim's thread ID from the URL:</strong></p>
         <p>
-          Login as Account B, open support chat and note the thread ID from the URL.
+          Login as Account B, open support chat and grab the thread ID from the URL.
         </p>
         <img src="../assets/writeups/airbnb/screenshot_3_victim_thread_url.png"
           alt="Victim Thread URL"
           style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 1.5rem;" />
 
-        <p><strong>Step 3 — Encode the thread ID to Base64:</strong></p>
+        <p><strong>Step 3 - Encode the thread ID to Base64:</strong></p>
         <pre><code>$ echo -n "MessageThread:[REDACTED]" | base64
 [REDACTED_BASE64]</code></pre>
         <img src="../assets/writeups/airbnb/screenshot_4_base64_decode_terminal.png"
           alt="Base64 Encoding in Terminal"
           style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 1.5rem;" />
 
-        <p><strong>Step 4 — Intercept & modify the request in Burp Suite:</strong></p>
+        <p><strong>Step 4 - Intercept and modify the request in Burp Suite:</strong></p>
         <p>
           Login as Account A, intercept the <code>ViaductGetThreadAndDataQuery</code> request,
-          replace the <code>globalThreadId</code> value with the encoded victim thread ID,
-          and send via Repeater.
+          swap the <code>globalThreadId</code> value with the encoded victim thread ID,
+          and send it via Repeater.
         </p>
         <img src="../assets/writeups/airbnb/screenshot_1_repeater_request.png"
           alt="Burp Suite Repeater Request"
           style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 1.5rem;" />
 
-        <p><strong>Step 5 — Server returns HTTP 200 instead of 403:</strong></p>
+        <p><strong>Step 5 - Server returns HTTP 200 instead of 403:</strong></p>
         <img src="../assets/writeups/airbnb/screenshot_2_response_200_metadata.png"
           alt="HTTP 200 Response"
           style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 1.5rem;" />
 
-        <p><strong>Step 6 — Metadata of Account B leaked in response body:</strong></p>
+        <p><strong>Step 6 - Metadata of Account B leaked in the response body:</strong></p>
         <img src="../assets/writeups/airbnb/screenshot_5_response_body_metadata_leaked.png"
           alt="Leaked Metadata in Response Body"
           style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 1.5rem;" />
@@ -137,27 +134,29 @@ HTTP/2 200 OK
 }</code></pre>
 
         <h2>Impact Analysis</h2>
-        <p>Although message content is protected, the leaked metadata can be used to:</p>
-        <ul style="padding-left:1.5rem;margin-bottom:1.2rem;color:var(--text-dim);">
-          <li><strong>Confirm user activity</strong> — verify if a target has active support conversations</li>
-          <li><strong>Enumerate moderation status</strong> — <code>hiddenInInbox: true</code> indicates account under review</li>
-          <li><strong>Profile activity patterns</strong> — support activity timestamps are exposed</li>
-          <li><strong>Attack chaining</strong> — valid thread IDs can be enumerated for further exploitation</li>
-        </ul>
+        <p>
+          The message content is protected sure, but the metadata that leaks is still useful
+          for an attacker. You can confirm whether a target has active support conversations,
+          check if an account is under moderation review via <code>hiddenInInbox: true</code>,
+          get a rough idea of their activity patterns from the timestamps, and enumerate valid
+          thread IDs to chain into further attacks.
+        </p>
 
         <h2>Remediation</h2>
-        <ul style="padding-left:1.5rem;margin-bottom:1.2rem;color:var(--text-dim);">
-          <li>Return <code>HTTP 403</code> for the entire request when user is not authorized — do not return partial data</li>
-          <li>Validate thread ownership server-side before returning ANY field in the response</li>
-          <li>Implement consistent authorization checks across all GraphQL field resolvers</li>
-        </ul>
+        <p>
+          The fix is straightforward. Return <code>HTTP 403</code> for the entire request when
+          the user isn't authorized, not just for the message content. Validate thread ownership
+          server-side before returning any field at all. And make sure the authorization checks
+          are consistent across all GraphQL field resolvers in that endpoint, not just the ones
+          that return the actual messages.
+        </p>
 
         <h2>Lessons Learned</h2>
         <blockquote>
-          Not every finding gets accepted — and that's part of bug bounty. What matters is
-          the process: endpoint enumeration, response behavior analysis, and structured reporting.
-          Metadata disclosure is often underrated, but in the right context it can be a stepping
-          stone for a larger attack chain. Keep hunting.
+          Not every finding gets accepted, and that's just part of the game. What matters is
+          the process, endpoint enumeration, response behavior analysis, structured reporting.
+          Metadata disclosure gets underrated a lot, but in the right context it can be a
+          stepping stone for something bigger. Keep hunting.
         </blockquote>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:1.5rem;">
@@ -174,6 +173,7 @@ HTTP/2 200 OK
 
       <div style="display:flex;justify-content:space-between;padding:2rem 0;border-top:1px solid var(--border);margin-top:3rem;">
         <a href="../writeups.html" class="btn btn-outline" style="font-size:0.78rem;">← All Writeups</a>
+        <a href="writeup-wpvip.html" class="btn btn-outline" style="font-size:0.78rem;">Next Writeup →</a>
       </div>
 
     </div>
