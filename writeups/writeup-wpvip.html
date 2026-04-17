@@ -50,16 +50,15 @@
 
         <h2>The Story</h2>
         <p>
-          It started like any other recon session - just me, a browser, and a WordPress site.
-          I was poking around <code>customerhub.wpvip.com</code>, the customer hub for WordPress VIP -
-          one of the most premium managed WordPress hosting platforms, used by enterprise companies
-          like Disney, Salesforce, and CNN.
+          It started like any other recon session. Just me, a browser, and a WordPress site.
+          I was poking around <code>customerhub.wpvip.com</code>, the customer hub for WordPress VIP,
+          a premium managed WordPress hosting platform used by large enterprise companies.
         </p>
         <p>
           I noticed the site was running <strong style="color:var(--yellow)">BuddyBoss</strong>,
-          a popular plugin for building community/membership platforms. BuddyBoss registers its own
-          REST API routes under <code>/wp-json/buddyboss/v1/</code>. That endpoint immediately caught
-          my attention. <em style="color:var(--text-dim)">REST APIs are always interesting to poke at.</em>
+          a popular plugin for building community and membership platforms. BuddyBoss registers its own
+          REST API routes under <code>/wp-json/buddyboss/v1/</code> and that endpoint immediately caught
+          my attention. REST APIs are always interesting to poke at.
         </p>
         <p>
           So I registered a basic account, waited for approval (about 1-2 business days), logged in,
@@ -70,21 +69,22 @@
           alt="Registration page at customerhub.wpvip.com"
           style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 0.3rem;" />
         <p style="font-size:0.72rem;color:var(--text-dim);text-align:center;margin-bottom:1.8rem;font-style:italic;">
-          Registration page - basic account, waiting for approval before accessing the hub
+          Registration page, basic account, waiting for approval before accessing the hub
         </p>
 
         <h2>Finding the Vulnerability</h2>
         <p>
-          First thing I tried: hit the <code>/members</code> endpoint after authentication.
-          To do that, I needed a valid REST API nonce - which WordPress conveniently embeds
-          in the page source inside the <code>BB_Nouveau_Presence</code> JavaScript variable.
+          First thing I tried was hitting the <code>/members</code> endpoint after authentication.
+          To do that I needed a valid REST API nonce, which WordPress conveniently embeds
+          right in the page source inside the <code>BB_Nouveau_Presence</code> JavaScript variable.
+          Easy to find, just Ctrl+U and search for "rest_nonce".
         </p>
 
         <img src="../assets/writeups/wpvip/ss3_rest_nonce_page_source.jpg"
           alt="REST nonce found in page source"
           style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 0.3rem;" />
         <p style="font-size:0.72rem;color:var(--text-dim);text-align:center;margin-bottom:1.8rem;font-style:italic;">
-          Ctrl+U → search "rest_nonce" → found inside BB_Nouveau_Presence variable
+          Found the rest_nonce value sitting inside BB_Nouveau_Presence in the page source
         </p>
 
         <p>Once I had the nonce, I fired a simple authenticated GET request:</p>
@@ -95,9 +95,9 @@ Cookie: wordpress_logged_in_[hash]=[value]
 X-WP-Nonce: [nonce_value]</code></pre>
 
         <p>
-          The server came back with <code>HTTP 200</code> - and a response body packed with member data.
-          Not just names. <strong style="color:var(--red)">Full PII.</strong> Then I checked the response
-          headers and saw something that made my jaw drop:
+          Server came back with HTTP 200 and the response body was packed with member data.
+          Not just names. <strong style="color:var(--red)">Full PII.</strong> Then I looked at the
+          response headers and saw something that genuinely made me stop for a second:
         </p>
 
         <pre><code>x-wp-total: 350
@@ -107,12 +107,12 @@ x-wp-totalpages: 350</code></pre>
           alt="x-wp-total: 350 exposed in response headers"
           style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 0.3rem;" />
         <p style="font-size:0.72rem;color:var(--text-dim);text-align:center;margin-bottom:1.8rem;font-style:italic;">
-          x-wp-total: 350 - all enterprise customers fully enumerable by any basic account
+          x-wp-total: 350, all enterprise customers fully enumerable by any basic account
         </p>
 
         <p>
-          350 enterprise customers. Fully enumerable. By anyone who could get a basic account approved.
-          No special role. No admin access. Just a freshly registered account.
+          350 enterprise customers. All enumerable. By anyone who could get a basic account approved.
+          No special role, no admin access, just a freshly registered account and a nonce from the page source.
         </p>
 
         <h2>Proof of Concept</h2>
@@ -151,25 +151,26 @@ x-wp-total: 350
           alt="PII data in API response (redacted)"
           style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 0.3rem;" />
         <p style="font-size:0.72rem;color:var(--text-dim);text-align:center;margin-bottom:1.8rem;font-style:italic;">
-          Full PII returned - name, username, company, role, location (redacted for privacy)
+          Full PII in the response, name, username, company, role, location. All redacted here.
         </p>
 
         <h2>Impact Analysis</h2>
         <p>
-          This wasn't just "names and emails." These are enterprise customers - companies paying
-          thousands per month for WordPress VIP. With a single API call, an attacker could:
+          This wasn't just "names and emails." These are enterprise customers, companies paying
+          thousands per month for WordPress VIP. With one API call, anyone with a basic approved
+          account could get full names, usernames, company names, job roles, locations, customer types,
+          and last activity timestamps across all 350 members. That's a solid starting point for
+          spear phishing, competitor intelligence, or just knowing who the high-value targets are.
         </p>
-        <ul style="padding-left:1.5rem;margin-bottom:1.2rem;color:var(--text-dim);">
-          <li><strong style="color:var(--text-bright)">Enumerate all 350 enterprise customers</strong> - full name, username, company, job role, location, customer type, last activity timestamp</li>
-          <li><strong style="color:var(--text-bright)">Business intelligence leak</strong> - competitors can identify every WordPress VIP client in one request</li>
-          <li><strong style="color:var(--text-bright)">Spear phishing</strong> - name + company + job role = perfect profile for targeted attacks against high-value enterprise targets</li>
-          <li><strong style="color:var(--text-bright)">Privacy violation</strong> - users never consented to having their data queryable by any newly approved account</li>
-        </ul>
+        <p>
+          The part that bothered me most is that users probably had no idea their data was
+          queryable like this. They signed up for a customer hub, not a public directory.
+        </p>
 
         <h2>The Response</h2>
         <p>
-          I submitted the report to WordPress VIP's HackerOne program and waited.
-          A few days later, I got this back:
+          I submitted the report to WordPress VIP's HackerOne program and waited a few days.
+          Then I got this:
         </p>
 
         <blockquote>
@@ -179,32 +180,35 @@ x-wp-total: 350
         </blockquote>
 
         <p>
-          And just like that - <strong style="color:var(--yellow)">marked as Informative, severity: none.</strong>
+          Marked as Informative, severity none.
         </p>
         <p>
-          Honestly? I disagree. A community directory is fine - if users know their data is visible
-          and actually consent to it. But enterprise customers joining a customer hub likely don't
-          expect their company name, job role, and full name to be bulk-queryable via a REST API
-          by any newly approved account. That's an <strong style="color:var(--text-bright)">expectation
-          vs. reality</strong> gap - and that gap is exactly what attackers exploit.
+          Honestly I still disagree. A community directory is fine if users actually know their
+          data is visible and agreed to it. But enterprise customers joining a customer hub probably
+          don't expect their full name, job role, and company to be bulk-queryable via a REST API
+          by any newly approved account. That gap between what users expect and what's actually
+          happening is exactly the kind of thing that gets abused.
         </p>
-        <p>But that's bug bounty. You document it, you learn from it, you move on. 🤷</p>
+        <p>
+          But that's bug bounty. Sometimes the program sees it differently. You take the L, write it up, and move on. 🤷
+        </p>
 
         <h2>Suggested Remediation</h2>
-        <ul style="padding-left:1.5rem;margin-bottom:1.2rem;color:var(--text-dim);">
-          <li>Implement <strong style="color:var(--text-bright)">role-based access control</strong> on <code>/wp-json/buddyboss/v1/members</code> - restrict to admins or authorized roles only</li>
-          <li><strong style="color:var(--text-bright)">Strip sensitive xprofile fields</strong> from API responses for non-admin users</li>
-          <li>Add <strong style="color:var(--text-bright)">rate limiting</strong> to prevent bulk enumeration</li>
-          <li>Give users <strong style="color:var(--text-bright)">granular privacy controls</strong> - let them choose what's visible in the directory</li>
-        </ul>
+        <p>
+          Even if the program considers this working as intended, here's what I'd do to fix it properly.
+          Add role-based access control on <code>/wp-json/buddyboss/v1/members</code> and restrict it
+          to admins or specific authorized roles. Strip the sensitive xprofile fields from responses
+          for regular users. Add rate limiting so bulk enumeration isn't trivial. And give users
+          actual privacy controls so they can choose what's visible and what isn't.
+        </p>
 
         <h2>Lessons Learned</h2>
         <blockquote>
-          Always check third-party plugin REST API endpoints. BuddyBoss, WooCommerce, LearnDash -
-          these plugins register their own routes that often inherit weaker access controls than
-          core WordPress. The <code>/wp-json/</code> directory is a goldmine. And response headers
-          like <code>x-wp-total</code> can immediately reveal the scale of a finding before you
-          even dig into the response body. Keep hunting.
+          Always check third-party plugin REST API endpoints. BuddyBoss, WooCommerce, LearnDash,
+          these plugins register their own routes and the access controls are often way weaker than
+          core WordPress. The <code>/wp-json/</code> directory is genuinely a goldmine. And response
+          headers like <code>x-wp-total</code> can immediately tell you the scale of what you're
+          looking at before you even read the body. Keep hunting.
         </blockquote>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:1.5rem;">
@@ -229,7 +233,7 @@ x-wp-total: 350
   <footer>
     <div class="footer-inner">
       <div class="footer-text">Built with <span>♥</span> by <span>Ahan Pahlevi</span></div>
-      <div class="footer-text"><span>ahanpahlevi</span>@cianjursec ~ <span>2026</span></div>
+      <div class="footer-text"><span>ahandotid</span>@cianjursec ~ <span>2026</span></div>
     </div>
   </footer>
 
