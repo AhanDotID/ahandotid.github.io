@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SMS Bombing via OTP Flooding on Jakarta Tax Portal | Ahan Pahlevi</title>
+  <link rel="icon" href="../assets/favicon.ico" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+  <div class="cursor"></div>
+  <div class="cursor-dot"></div>
+
+  <nav>
+    <div class="nav-inner">
+      <div class="nav-logo"><span>~/</span>ahandotid<span class="blink">_</span></div>
+      <button class="nav-menu-btn">☰</button>
+      <ul class="nav-links">
+        <li><a href="../index.html">About</a></li>
+        <li><a href="../writeups.html" class="active">Writeups</a></li>
+        <li><a href="../projects.html">Projects</a></li>
+        <li><a href="../contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="article-wrapper">
+
+      <div class="article-header">
+        <div style="margin-bottom:1rem;">
+          <a href="../writeups.html" style="font-size:0.78rem;color:var(--text-dim);">← Back to Writeups</a>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;">
+          <span class="card-category cat-web">Web</span>
+          <span class="card-category cat-osint">Bug Bounty</span>
+          <span class="card-category" style="background:rgba(255,80,80,0.1);color:var(--red);border:1px solid rgba(255,80,80,0.3);">High</span>
+        </div>
+        <h1 class="article-title">SMS Bombing via OTP Flooding on Jakarta Tax Portal</h1>
+        <div class="article-meta">
+          <span>📅 2026</span>
+          <span>⏱ 5 min read</span>
+          <span>🎯 CSIRT Jakarta - pajakonline.jakarta.go.id</span>
+          <span>👤 Ahan Pahlevi</span>
+        </div>
+      </div>
+
+      <div class="article-body">
+
+        <h2>How It Started</h2>
+        <p>
+          I was looking for government bug bounty programs in Indonesia that 
+          actually accept external reports. Most of them have clauses requiring 
+          the reporter to be the system owner, which effectively closes the door 
+          for independent researchers. CSIRT Jakarta was different. Their portal 
+          at <code>csirt.jakarta.go.id</code> has a cyber report form with a 
+          clearly defined scope covering all <code>*.jakarta.go.id</code> 
+          subdomains, open to anyone.
+        </p>
+        <p>
+          I started with subdomain enumeration using certificate transparency 
+          logs, pulled around 800 subdomains, and started scanning which ones 
+          were actually live. One that stood out immediately was 
+          <code>pajakonline.jakarta.go.id</code>, the online tax payment portal 
+          for DKI Jakarta residents. Tax systems are always interesting because 
+          they handle real financial data and are used by the general public, 
+          which means the registration flow is usually accessible without needing 
+          an existing account.
+        </p>
+        <p>
+          I opened the registration page and the first thing I noticed was a 
+          reCAPTCHA widget at the bottom of the form showing a message I hadn't 
+          seen in a while.
+        </p>
+
+        <img src="../assets/writeups/pajakonline/ss1_register_captcha_overquota.png"
+          alt="Registration page showing reCAPTCHA over quota"
+          style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 0.3rem;" />
+        <p style="font-size:0.72rem;color:var(--text-dim);text-align:center;margin-bottom:1.8rem;font-style:italic;">
+          "This site is exceeding reCAPTCHA Enterprise free quota." The bot protection was already broken before I even started.
+        </p>
+
+        <h2>The Registration Flow</h2>
+        <p>
+          The form collects a phone number, mobile number, email, and password before sending
+          an OTP to verify the mobile number. Standard registration flow. I filled in dummy
+          data, hit submit with Burp running in the background, and watched what happened
+          in HTTP History.
+        </p>
+        <p>
+          The registration triggered a <code>POST</code> request to <code>/wp/send-otp</code>
+          with the phone number in the body as the <code>nohp</code> parameter. Server came
+          back with <code>HTTP 200</code> and a JSON response.
+        </p>
+
+        <img src="../assets/writeups/pajakonline/ss2_burp_send_otp_request.png"
+          alt="Burp Suite showing POST /wp/send-otp request and response"
+          style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 0.3rem;" />
+        <p style="font-size:0.72rem;color:var(--text-dim);text-align:center;margin-bottom:1.8rem;font-style:italic;">
+          POST /wp/send-otp with nohp in the body. Response: "OTP berhasil dikirim." PHP 7.1.33 visible in headers.
+        </p>
+
+        <h2>Finding the Vulnerability</h2>
+        <p>
+          After the OTP was sent, the UI showed a modal with a 30-second cooldown timer
+          before you could request another one. Client-side protection. The question was
+          whether the server actually enforced that cooldown or just trusted the frontend
+          to handle it.
+        </p>
+
+        <img src="../assets/writeups/pajakonline/ss3_client_side_cooldown.png"
+          alt="OTP modal showing 30 second cooldown timer"
+          style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 0.3rem;" />
+        <p style="font-size:0.72rem;color:var(--text-dim);text-align:center;margin-bottom:1.8rem;font-style:italic;">
+          30 second cooldown in the UI. Looks like protection. It isn't.
+        </p>
+
+        <p>
+          I sent the request to Burp Repeater, changed the <code>nohp</code> value to an
+          arbitrary phone number, and started clicking Send. No waiting, no cooldown,
+          no CAPTCHA to solve. Just straight requests.
+        </p>
+        <p>
+          Ten requests in a row. Every single one came back <code>HTTP 200</code> with
+          <code>"OTP berhasil dikirim"</code>. Not a single <code>429</code>. No rate
+          limit headers anywhere in the response. The server had no enforcement at all.
+          The 30-second timer existed only in the browser.
+        </p>
+
+        <img src="../assets/writeups/pajakonline/ss4_otp_flooding_confirmed.png"
+          alt="Burp Repeater showing repeated OTP requests all returning 200"
+          style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 0.3rem;" />
+        <p style="font-size:0.72rem;color:var(--text-dim);text-align:center;margin-bottom:1.8rem;font-style:italic;">
+          10+ requests, all 200 OK, all "OTP berhasil dikirim." No 429, no rate limit, nothing.
+        </p>
+
+        <h2>Proof of Concept</h2>
+        <pre><code>POST /wp/send-otp HTTP/2
+Host: pajakonline.jakarta.go.id
+Content-Type: application/x-www-form-urlencoded
+X-Requested-With: XMLHttpRequest
+Origin: https://pajakonline.jakarta.go.id
+
+_token=[REDACTED]&nohp=[TARGET_PHONE]&type=register
+
+--- Response (every single time) ---
+HTTP/2 200 OK
+X-Powered-By: PHP/7.1.33
+Content-Type: application/json
+
+{
+  "message": "OTP berhasil dikirim"
+}</code></pre>
+
+        <p>
+          Replace <code>[TARGET_PHONE]</code> with any Indonesian mobile number and send
+          as many times as you want. The server will keep firing SMS messages with no
+          limit whatsoever.
+        </p>
+
+        <h2>Impact Analysis</h2>
+        <p>
+          This is a public-facing tax portal used by Jakarta residents to pay taxes online.
+          The OTP endpoint accepts any phone number without authentication, without CAPTCHA
+          validation (which was already broken due to over quota), and without any server-side
+          rate limiting. The 30-second cooldown only lives in the browser and disappears
+          the moment you use Burp.
+        </p>
+        <p>
+          Anyone can use this to flood SMS messages to any phone number in Indonesia, using
+          Pemprov DKI Jakarta's infrastructure to do it. The target doesn't need to have
+          an account. They just need a phone number. For users who are in the middle of
+          completing a tax payment, getting spammed with OTP messages from an official
+          government system is also a convincing social engineering vector.
+        </p>
+        <p>
+          Worth noting: the server is also running <code>PHP/7.1.33</code>, which reached
+          end of life in December 2019 and has received no security patches since then.
+          That's a separate issue but it's sitting right there in every response header.
+        </p>
+
+        <h2>Remediation</h2>
+        <p>
+          Rate limiting on <code>/wp/send-otp</code> needs to be enforced server-side,
+          not just in the browser. A reasonable limit would be 3 to 5 OTP requests per
+          phone number per 10 minutes with exponential backoff. The CAPTCHA also needs
+          to be validated on the backend before the OTP is sent, not just rendered on
+          the frontend. And the reCAPTCHA quota situation needs to be resolved regardless,
+          because a broken CAPTCHA is the same as no CAPTCHA. As a separate item, PHP 7.1.33
+          should be upgraded to a version that still receives security updates.
+        </p>
+
+        <h2>The Response</h2>
+        <p>
+          I reported this to CSIRT Jakarta via email at <code>csirt@jakarta.go.id</code>
+          with a full description, proof of concept, and video recording. They got back
+          to me the next day.
+        </p>
+
+        <img src="../assets/writeups/pajakonline/ss5_csirt_response.png"
+          alt="Email response from CSIRT Jakarta stating the finding is VALID"
+          style="width:100%;border-radius:8px;border:1px solid var(--border);margin:0.5rem 0 0.3rem;" />
+        <p style="font-size:0.72rem;color:var(--text-dim);text-align:center;margin-bottom:1.8rem;font-style:italic;">
+          VALID. One word that makes the whole session worth it.
+        </p>
+
+        <p>
+          They marked it as VALID but noted it fell outside the criteria for an appreciation
+          certificate since their policy only covers High and Critical severity findings.
+          Which is a bit of a contradiction given I submitted it as High, but that's their
+          call to make. The finding is acknowledged, it's on record, and the vulnerability
+          is real regardless of what label gets attached to it at the end.
+        </p>
+        <p>
+          That's just how responsible disclosure works sometimes. You report it, they fix it
+          hopefully, and you write it up. The certificate would have been nice but it was
+          never the point.
+        </p>
+
+        <h2>Lessons Learned</h2>
+        <blockquote>
+          Client-side protections are not protections. A 30-second cooldown timer in
+          JavaScript, a CAPTCHA that's over quota, a disabled submit button. None of
+          these mean anything once someone opens Burp and talks directly to the server.
+          The only protection that counts is what the server enforces. If the server
+          doesn't check it, it doesn't exist.
+        </blockquote>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:1.5rem;">
+          <span class="skill-badge">OTP Flooding</span>
+          <span class="skill-badge">SMS Bombing</span>
+          <span class="skill-badge">Rate Limit Bypass</span>
+          <span class="skill-badge">CAPTCHA Bypass</span>
+          <span class="skill-badge">PHP EOL</span>
+          <span class="skill-badge">Burp Suite</span>
+          <span class="skill-badge">Government</span>
+          <span class="skill-badge">Jakarta</span>
+        </div>
+
+      </div>
+
+      <div style="display:flex;justify-content:space-between;padding:2rem 0;border-top:1px solid var(--border);margin-top:3rem;">
+        <a href="../writeups.html" class="btn btn-outline" style="font-size:0.78rem;">← All Writeups</a>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-text">Built with <span>♥</span> by <span>Ahan Pahlevi</span></div>
+      <div class="footer-text"><span>ahanpahlevi</span>@cianjursec ~ <span>2026</span></div>
+    </div>
+  </footer>
+
+  <script src="../js/main.js"></script>
+</body>
+</html>
